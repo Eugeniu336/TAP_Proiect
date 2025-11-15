@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                              QTextEdit, QLabel, QPushButton, QLineEdit, QComboBox,
-                             QMessageBox, QFrame, QScrollArea, QGridLayout, QGroupBox)
-from PyQt5.QtCore import Qt
+                             QMessageBox, QFrame, QScrollArea, QGridLayout, QGroupBox, QApplication)
+from PyQt5.QtCore import Qt, QTimer, QMetaObject, Q_ARG
 from PyQt5.QtGui import QFont, QTextCursor
 from datetime import datetime
 import io
@@ -17,6 +17,11 @@ from .CSV_Manager import get_current_csv_data
 
 def show_results_window():
     """Интерактивное окно с результатами и возможностью делать предсказания"""
+    # ВАЖНО: Проверяем, что мы в главном потоке Qt
+    if QApplication.instance() is None:
+        QMessageBox.critical(None, "Ошибка", "QApplication не инициализирован")
+        return
+
     current_csv_data = get_current_csv_data()
 
     if not current_csv_data:
@@ -38,14 +43,18 @@ def show_results_window():
             with open('model2_trained.pkl', 'rb') as f:
                 model2_data = pickle.load(f)
 
-        # Создаём главное окно
-        results_window = ResultsWindow(df, model1_data, model2_data)
-        results_window.show()
+        # Создаём главное окно В ГЛАВНОМ ПОТОКЕ
+        def create_window():
+            results_window = ResultsWindow(df, model1_data, model2_data)
+            results_window.show()
 
-        # ВАЖНО: Сохраняем ссылку на окно, чтобы оно не закрылось
-        if not hasattr(show_results_window, '_windows'):
-            show_results_window._windows = []
-        show_results_window._windows.append(results_window)
+            # ВАЖНО: Сохраняем ссылку на окно, чтобы оно не закрылось
+            if not hasattr(show_results_window, '_windows'):
+                show_results_window._windows = []
+            show_results_window._windows.append(results_window)
+
+        # Используем QTimer для создания окна в главном потоке
+        QTimer.singleShot(0, create_window)
 
     except Exception as e:
         QMessageBox.critical(None, "Ошибка", f"Не удалось отобразить результаты:\n{e}")
@@ -61,11 +70,12 @@ class ResultsWindow(QWidget):
         self.model2_data = model2_data
 
         self.setWindowTitle("🤖 AI Models Dashboard")
-        self.setGeometry(100, 100, 1000, 750)
+        self.setGeometry(100, 100, 1100, 500)
         self.setStyleSheet("""
             QWidget {
                 background-color: #1e1e1e;
                 color: #ffffff;
+                font-size: 20px;
             }
             QTabWidget::pane {
                 border: 2px solid #3d3d3d;
@@ -75,12 +85,13 @@ class ResultsWindow(QWidget):
             QTabBar::tab {
                 background-color: #3d3d3d;
                 color: #ffffff;
-                padding: 12px 24px;
+                padding: 14px 35px;
                 margin-right: 4px;
                 border-top-left-radius: 8px;
                 border-top-right-radius: 8px;
-                font-size: 13px;
+                font-size: 20px;
                 font-weight: bold;
+                min-width: 160px;
             }
             QTabBar::tab:selected {
                 background-color: #4CAF50;
@@ -98,10 +109,10 @@ class ResultsWindow(QWidget):
         title_label = QLabel("🤖 AI Models Dashboard")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("""
-            font-size: 24px;
+            font-size: 26px;
             font-weight: bold;
             color: #4CAF50;
-            padding: 15px;
+            padding: 18px;
             background-color: #2b2b2b;
             border-radius: 10px;
             margin-bottom: 10px;
@@ -136,10 +147,10 @@ class ResultsWindow(QWidget):
                 background-color: #1a1a1a;
                 color: #00ff00;
                 font-family: 'Courier New';
-                font-size: 11px;
+                font-size: 20px;
                 border: 2px solid #4CAF50;
                 border-radius: 8px;
-                padding: 10px;
+                padding: 12px;
             }
         """)
 
@@ -247,11 +258,11 @@ class ResultsWindow(QWidget):
         title_label = QLabel("🔮 Тестирование моделей")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("""
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             color: white;
             background-color: #4CAF50;
-            padding: 15px;
+            padding: 18px;
             border-radius: 10px;
         """)
         predict_layout.addWidget(title_label)
@@ -260,13 +271,13 @@ class ResultsWindow(QWidget):
         input_group = QGroupBox("📝 Входные параметры")
         input_group.setStyleSheet("""
             QGroupBox {
-                font-size: 14px;
+                font-size: 20px;
                 font-weight: bold;
                 color: #4CAF50;
                 border: 2px solid #4CAF50;
                 border-radius: 10px;
-                margin-top: 10px;
-                padding-top: 15px;
+                margin-top: 12px;
+                padding-top: 18px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
@@ -288,7 +299,7 @@ class ResultsWindow(QWidget):
         label_style = """
             QLabel {
                 color: #ffffff;
-                font-size: 12px;
+                font-size: 20px;
                 font-weight: bold;
             }
         """
@@ -299,21 +310,21 @@ class ResultsWindow(QWidget):
                 color: #ffffff;
                 border: 2px solid #505050;
                 border-radius: 6px;
-                padding: 8px;
-                font-size: 12px;
+                padding: 10px;
+                font-size: 20px;
             }
             QLineEdit:focus, QComboBox:focus {
                 border: 2px solid #4CAF50;
             }
             QComboBox::drop-down {
                 border: none;
-                width: 30px;
+                width: 35px;
             }
             QComboBox::down-arrow {
                 image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #4CAF50;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 6px solid #4CAF50;
                 margin-right: 10px;
             }
         """
@@ -387,9 +398,9 @@ class ResultsWindow(QWidget):
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
-                font-size: 14px;
+                font-size: 20px;
                 font-weight: bold;
-                padding: 15px;
+                padding: 18px;
                 border-radius: 10px;
                 border: none;
             }
@@ -407,13 +418,13 @@ class ResultsWindow(QWidget):
         result_group = QGroupBox("📊 Результаты предсказания")
         result_group.setStyleSheet("""
             QGroupBox {
-                font-size: 14px;
+                font-size: 20px;
                 font-weight: bold;
                 color: #4CAF50;
                 border: 2px solid #4CAF50;
                 border-radius: 10px;
-                margin-top: 10px;
-                padding-top: 15px;
+                margin-top: 12px;
+                padding-top: 18px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
@@ -432,13 +443,13 @@ class ResultsWindow(QWidget):
                 background-color: #1a1a1a;
                 color: #00ff00;
                 font-family: 'Courier New';
-                font-size: 11px;
+                font-size: 20px;
                 border: 2px solid #505050;
                 border-radius: 6px;
-                padding: 10px;
+                padding: 12px;
             }
         """)
-        self.result_text.setMinimumHeight(250)
+        self.result_text.setMinimumHeight(280)
 
         result_layout.addWidget(self.result_text)
         result_group.setLayout(result_layout)
@@ -592,10 +603,10 @@ class ResultsWindow(QWidget):
                 background-color: #1a1a1a;
                 color: #00ff00;
                 font-family: 'Courier New';
-                font-size: 11px;
+                font-size: 20px;
                 border: 2px solid #4CAF50;
                 border-radius: 8px;
-                padding: 10px;
+                padding: 12px;
             }
         """)
 
