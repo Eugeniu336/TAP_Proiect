@@ -2,6 +2,10 @@ import socket
 import threading
 import tkinter as tk
 from tkinter import messagebox
+import struct
+import json
+from pathlib import Path
+import time
 
 SERVER_IP = "127.0.0.1"
 PORT = 9090
@@ -15,38 +19,105 @@ connected = False
 
 csv_file_path = None
 csv_data = None 
-processed_count = 0 
+processed_count = 0
 
+# Папки для файлов
+RECV_DIR = Path("received_files")
+PROCESSED_DIR = Path("processed_files")
+RECV_DIR.mkdir(exist_ok=True)
+PROCESSED_DIR.mkdir(exist_ok=True)
+
+# ======================= Функции передачи данных =======================
+def recv_exact(sock, n):
+    """Получение точного количества байт"""
+    buf = bytearray()
+    while len(buf) < n:
+        chunk = sock.recv(n - len(buf))
+        if not chunk:
+            raise ConnectionError("Соединение прервано")
+        buf.extend(chunk)
+    return bytes(buf)
+
+def recv_message(sock):
+    """Получение структурированного сообщения"""
+    raw = sock.recv(4)
+    if not raw:
+        return None, None
+    
+    header_len = struct.unpack(">I", raw)[0]
+    header_bytes = recv_exact(sock, header_len)
+    header = json.loads(header_bytes.decode('utf-8'))
+    
+    size = header.get("size", 0)
+    data = recv_exact(sock, size) if size > 0 else b""
+    
+    return header, data
+
+def send_message(sock, header, data):
+    """Отправка структурированного сообщения"""
+    header_bytes = json.dumps(header).encode('utf-8')
+    sock.sendall(struct.pack(">I", len(header_bytes)))
+    sock.sendall(header_bytes)
+    if data:
+        sock.sendall(data)
+
+# ======================= Основная функция работы =======================
 def do_work():
-    work = "Результат работы клиента"
     """
     Заглушка для реальной задачи.
     (づ｡◕‿‿◕｡)づ 
     """
+    work = "Результат работы клиента"
     return work, None  # Возвращаем кортеж (результат, новый_csv)
 
-
+# ======================= Слушатель сервера =======================
 def listen_server():
-    global connected, csv_data, processed_count
+    global connected, csv_data, csv_file_path, processed_count
+    
     while connected:
         try:
-            # ВАЖНО: НЕ блокируем если нет данных
-            client_socket.settimeout(1.0)  # 1 секунда таймаут для проверки
+            client_socket.settimeout(1.0)
             
             try:
-                first_bytes = client_socket.recv(10, socket.MSG_PEEK).decode('utf-8', errors='ignore')
-            except socket.timeout:
-                continue  # Просто продолжаем ждать
-            
-            client_socket.settimeout(None)  # Убираем таймаут
-            
-            if first_bytes.startswith("SIZE:"):
-                full_data = receive_large_data(client_socket)
-                if full_data.startswith("CSV_DATA:"):
-                    csv_data = full_data.replace("CSV_DATA:", "").strip()
-                    print(f"[CSV] Получены данные ({len(csv_data)} символов)")
-                continue
+                peek = client_socket.recv(4, socket.MSG_PEEK)
+                if not peek:
+                    continue
                 
+                # Проверяем, это файл или команда
+                try:
+                    header_len = struct.unpack(">I", peek)[0]
+                    if 0 < header_len < 10000:
+                        # Это структурированное сообщение (файл)
+                        client_socket.settimeout(None)
+                        header, data = recv_message(client_socket)
+                        
+                        if header and header.get("action") == "send_file":
+                            filename = header.get("filename", "received.csv")
+                            
+                            # Сохраняем файл
+                            save_path = RECV_DIR / filename
+                            i = 1
+                            base, suff = save_path.stem, save_path.suffix
+                            while save_path.exists():
+                                save_path = RECV_DIR / f"{base}_{i}{suff}"
+                                i += 1
+                            
+                            with open(save_path, 'wb') as f:
+                                f.write(data)
+                            
+                            # Загружаем CSV в память
+                            csv_data = data.decode('utf-8')
+                            csv_file_path = save_path
+                            print(f"[CSV] Получен файл {filename} ({len(data)} байт) -> {save_path}")
+                        continue
+                except (struct.error, UnicodeDecodeError):
+                    pass
+                
+            except socket.timeout:
+                continue
+            
+            # Если не файл, читаем как команду
+            client_socket.settimeout(None)
             msg = client_socket.recv(1024).decode('utf-8')
             
             if not msg:
@@ -63,32 +134,52 @@ def listen_server():
                 break
                 
             elif msg == "WORK":
-                print("[Сервер] -> Запрос на выполнение работы")
-                result, new_csv_data = do_work()
+                print("[WORK] Запрос на выполнение работы")
+                result, new_csv = do_work()
                 
                 if processed_count == 0:
                     print(result)
                     processed_count += 1
                 
+                # Отправляем текстовый результат
                 client_socket.send(result.encode('utf-8'))
-                import time
                 time.sleep(0.3)
                 
-                if new_csv_data:
-                    send_large_data(client_socket, f"CSV_UPDATED:{new_csv_data}")
-                    print(f"[CSV] Отправлены обновлённые данные ({len(new_csv_data)} байт)")
+                # Отправляем обработанный файл обратно
+                if new_csv:
+                    processed_data = new_csv.encode('utf-8')
+                    
+                    # Сохраняем локально
+                    processed_path = PROCESSED_DIR / f"processed_{CLIENT_NAME}.csv"
+                    with open(processed_path, 'wb') as f:
+                        f.write(processed_data)
+                    
+                    # Отправляем серверу
+                    header = {
+                        "action": "return_file",
+                        "filename": f"processed_{CLIENT_NAME}.csv",
+                        "size": len(processed_data)
+                    }
+                    send_message(client_socket, header, processed_data)
+                    print(f"[CSV] Отправлен обработанный файл ({len(processed_data)} байт)")
                 else:
-                    send_large_data(client_socket, "NO_UPDATE")
+                    print("[!] Нет обновлений для отправки")
+                    no_update_data = b"NO_UPDATE"
+                    header = {
+                        "action": "return_file",
+                        "filename": "no_update.txt",
+                        "size": len(no_update_data)
+                    }
+                    send_message(client_socket, header, no_update_data)
                     
         except socket.timeout:
-            continue  # Нормально, просто продолжаем
+            continue
         except Exception as e:
             print(f"[!] Ошибка при получении данных: {e}")
             import traceback
             traceback.print_exc()
-            break  # Выходим только при критической ошибке
+            break
     
-    # Если вышли из цикла - отключаемся
     if connected:
         disconnect()
 
@@ -102,7 +193,6 @@ def connect():
         data = f"{CLIENT_NAME}|{CLIENT_LEVEL}|{CLIENT_MODE}"
         client_socket.send(data.encode('utf-8'))
 
-        # Проверим подтверждение подключения
         client_socket.settimeout(2)
         try:
             msg = client_socket.recv(1024).decode('utf-8')
@@ -110,7 +200,6 @@ def connect():
                 messagebox.showerror("Ошибка", msg.replace("ERROR:", "").strip())
                 client_socket.close()
                 return
-            # Просто подтверждаем подключение, CSV получим позже
         except socket.timeout:
             pass
         client_socket.settimeout(None)
@@ -122,50 +211,6 @@ def connect():
     except Exception as e:
         messagebox.showerror("Ошибка", f"Не удалось подключиться к серверу {SERVER_IP}:{PORT}.\n{e}")
 
-def receive_large_data(sock, timeout=180):  # Увеличен таймаут
-    sock.settimeout(timeout)
-    size_header = b""
-    while b"\n" not in size_header:
-        chunk = sock.recv(1)
-        if not chunk:
-            raise ConnectionError("Соединение прервано")
-        size_header += chunk
-
-    size_str = size_header.decode('utf-8').strip()
-    if not size_str.startswith("SIZE:"):
-        raise ValueError("Неверный формат заголовка")
-    total_size = int(size_str.replace("SIZE:", ""))
-    print(f"[RECV] Ожидается {total_size} байт")
-
-    received_data = b""
-    while len(received_data) < total_size:
-        chunk = sock.recv(min(8192, total_size - len(received_data)))
-        if not chunk:
-            raise ConnectionError("Соединение прервано")
-        received_data += chunk
-
-    sock.settimeout(None)
-    print(f"[RECV] Получено {len(received_data)} байт")
-    return received_data.decode('utf-8')
-
-
-def send_large_data(sock, data):
-    import time
-    CHUNK_SIZE = 8192
-    data_bytes = data.encode('utf-8')
-    total_size = len(data_bytes)
-
-    sock.send(f"SIZE:{total_size}\n".encode('utf-8'))
-    time.sleep(0.1)
-
-    sent = 0
-    while sent < total_size:
-        chunk = data_bytes[sent:sent + CHUNK_SIZE]
-        sock.send(chunk)
-        sent += len(chunk)
-        time.sleep(0.01)
-    print(f"[SEND] Отправлено {sent} байт")
-
 def disconnect():
     global connected
     if not connected:
@@ -176,7 +221,6 @@ def disconnect():
         pass
     connected = False
     status_label.config(text="Отключен", fg="red")
-
 
 def open_settings():
     """Окно настроек для изменения IP и порта."""
@@ -211,7 +255,6 @@ def open_settings():
 
     tk.Button(settings, text="Сохранить", command=save_settings).pack(pady=10)
 
-
 # ============================================= GUI =============================================
 def create_gui():
     global status_label
@@ -235,7 +278,6 @@ def create_gui():
     tk.Button(root, text="⚙ Настройки сервера", command=open_settings, width=25).pack(pady=10)
 
     root.mainloop()
-
 
 if __name__ == "__main__":
     create_gui()
