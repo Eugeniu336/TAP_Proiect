@@ -223,12 +223,18 @@ class ServerWindow(QWidget):
         # Прозрачность окна
         self.setAttribute(Qt.WA_TranslucentBackground)
 
-        # Загрузка фона (если есть файл app_test.png)
-        if os.path.exists("../App_UI/app_ui.png"):
-            self.background = QPixmap("../App_UI/app_ui.png")
+        ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        UI_DIR = os.path.join(ROOT_DIR, "App_UI")
+
+        # Путь к единственной текстуре
+        texture_file = os.path.join(UI_DIR, "app_ui.png")
+
+        # Проверяем наличие файла и грузим фон
+        if os.path.exists(texture_file):
+            self.background = QPixmap(texture_file)
             self.resize(self.background.width(), self.background.height())
         else:
-            # Если нет текстуры, делаем обычное окно
+            # Если нет текстуры — обычное окно
             self.setWindowFlags(Qt.Window)
             self.setAttribute(Qt.WA_TranslucentBackground, False)
             self.resize(800, 600)
