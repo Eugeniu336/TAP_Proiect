@@ -13,6 +13,9 @@ CLIENT_MODE = "Параллельно"
 client_socket = None
 connected = False
 
+csv_file_path = None
+csv_data = None 
+processed_count = 0 
 
 def do_work():
     work = "Результат работы клиента"
@@ -20,29 +23,74 @@ def do_work():
     Заглушка для реальной задачи.
     (づ｡◕‿‿◕｡)づ 
     """
-    return work
+    return work, None  # Возвращаем кортеж (результат, новый_csv)
 
 
 def listen_server():
-    global connected
+    global connected, csv_data, processed_count
     while connected:
         try:
+            # ВАЖНО: НЕ блокируем если нет данных
+            client_socket.settimeout(1.0)  # 1 секунда таймаут для проверки
+            
+            try:
+                first_bytes = client_socket.recv(10, socket.MSG_PEEK).decode('utf-8', errors='ignore')
+            except socket.timeout:
+                continue  # Просто продолжаем ждать
+            
+            client_socket.settimeout(None)  # Убираем таймаут
+            
+            if first_bytes.startswith("SIZE:"):
+                full_data = receive_large_data(client_socket)
+                if full_data.startswith("CSV_DATA:"):
+                    csv_data = full_data.replace("CSV_DATA:", "").strip()
+                    print(f"[CSV] Получены данные ({len(csv_data)} символов)")
+                continue
+                
             msg = client_socket.recv(1024).decode('utf-8')
+            
+            if not msg:
+                break
+                
             if msg == "DISCONNECT":
                 messagebox.showinfo("Сервер", "Вы были отключены сервером.")
                 disconnect()
                 break
+                
             elif msg.startswith("ERROR:"):
                 messagebox.showerror("Ошибка", msg.replace("ERROR:", "").strip())
                 disconnect()
                 break
-            elif msg:
-                print(f"[Сервер] -> {msg}")
-                result = do_work()
+                
+            elif msg == "WORK":
+                print("[Сервер] -> Запрос на выполнение работы")
+                result, new_csv_data = do_work()
+                
+                if processed_count == 0:
+                    print(result)
+                    processed_count += 1
+                
                 client_socket.send(result.encode('utf-8'))
-        except:
-            break
-
+                import time
+                time.sleep(0.3)
+                
+                if new_csv_data:
+                    send_large_data(client_socket, f"CSV_UPDATED:{new_csv_data}")
+                    print(f"[CSV] Отправлены обновлённые данные ({len(new_csv_data)} байт)")
+                else:
+                    send_large_data(client_socket, "NO_UPDATE")
+                    
+        except socket.timeout:
+            continue  # Нормально, просто продолжаем
+        except Exception as e:
+            print(f"[!] Ошибка при получении данных: {e}")
+            import traceback
+            traceback.print_exc()
+            break  # Выходим только при критической ошибке
+    
+    # Если вышли из цикла - отключаемся
+    if connected:
+        disconnect()
 
 def connect():
     global client_socket, connected, SERVER_IP, PORT
@@ -54,7 +102,7 @@ def connect():
         data = f"{CLIENT_NAME}|{CLIENT_LEVEL}|{CLIENT_MODE}"
         client_socket.send(data.encode('utf-8'))
 
-        # Проверим сразу ответ
+        # Проверим подтверждение подключения
         client_socket.settimeout(2)
         try:
             msg = client_socket.recv(1024).decode('utf-8')
@@ -62,6 +110,7 @@ def connect():
                 messagebox.showerror("Ошибка", msg.replace("ERROR:", "").strip())
                 client_socket.close()
                 return
+            # Просто подтверждаем подключение, CSV получим позже
         except socket.timeout:
             pass
         client_socket.settimeout(None)
@@ -69,9 +118,53 @@ def connect():
         connected = True
         threading.Thread(target=listen_server, daemon=True).start()
         status_label.config(text=f"Подключен к {SERVER_IP}:{PORT}", fg="green")
-    except:
-        messagebox.showerror("Ошибка", f"Не удалось подключиться к серверу {SERVER_IP}:{PORT}.")
+        messagebox.showinfo("Успех", f"Подключено к серверу {SERVER_IP}:{PORT}")
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Не удалось подключиться к серверу {SERVER_IP}:{PORT}.\n{e}")
 
+def receive_large_data(sock, timeout=180):  # Увеличен таймаут
+    sock.settimeout(timeout)
+    size_header = b""
+    while b"\n" not in size_header:
+        chunk = sock.recv(1)
+        if not chunk:
+            raise ConnectionError("Соединение прервано")
+        size_header += chunk
+
+    size_str = size_header.decode('utf-8').strip()
+    if not size_str.startswith("SIZE:"):
+        raise ValueError("Неверный формат заголовка")
+    total_size = int(size_str.replace("SIZE:", ""))
+    print(f"[RECV] Ожидается {total_size} байт")
+
+    received_data = b""
+    while len(received_data) < total_size:
+        chunk = sock.recv(min(8192, total_size - len(received_data)))
+        if not chunk:
+            raise ConnectionError("Соединение прервано")
+        received_data += chunk
+
+    sock.settimeout(None)
+    print(f"[RECV] Получено {len(received_data)} байт")
+    return received_data.decode('utf-8')
+
+
+def send_large_data(sock, data):
+    import time
+    CHUNK_SIZE = 8192
+    data_bytes = data.encode('utf-8')
+    total_size = len(data_bytes)
+
+    sock.send(f"SIZE:{total_size}\n".encode('utf-8'))
+    time.sleep(0.1)
+
+    sent = 0
+    while sent < total_size:
+        chunk = data_bytes[sent:sent + CHUNK_SIZE]
+        sock.send(chunk)
+        sent += len(chunk)
+        time.sleep(0.01)
+    print(f"[SEND] Отправлено {sent} байт")
 
 def disconnect():
     global connected
@@ -103,7 +196,6 @@ def open_settings():
     port_entry.pack(pady=5)
 
     def save_settings():
-        # ✅ добавили глобальные переменные!
         global SERVER_IP, PORT
         try:
             new_ip = ip_entry.get().strip()
