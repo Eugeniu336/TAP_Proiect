@@ -4,65 +4,72 @@ PLUGIN 3: Lemmatizer & Splitter
 """
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../client/client_template')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../Client/Client_Template')))
 import Client_Template as base
 
 base.CLIENT_NAME = "Lemmatizer"
 base.CLIENT_LEVEL = "3"
 base.CLIENT_MODE = "Последовательно"
 
-# Простой словарь лемматизации
 LEMMA_DICT = {
     "products": "product", "services": "service", "phones": "phone",
     "loves": "love", "batteries": "battery", "lives": "life",
     "screens": "screen", "disappointed": "disappoint", 
-    "purchases": "purchase", "needed": "need"
+    "purchases": "purchase", "needed": "need",
+    "apples": "apple", "bananas": "banana", "oranges": "orange"
 }
 
 def do_work():
-    """
-    Плагин 3: Лемматизация и разделение данных на 2 половины
-    """
-    # === ПРИЕМ ДАННЫХ ===
-    # TODO: Здесь будут приходить данные от Tokenizer
-    input_data = None  # Данные от предыдущего плагина
+    import pandas as pd
+    import io
+    import ast
     
-    # Для тестирования используем заглушку (токенизированные тексты)
-    tokenized_data = [
-        ["great", "product", "excellent", "quality", "fast", "delivery"],
-        ["bad", "service", "terrible", "experience", "poor", "quality"],
-        ["amazing", "phone", "love", "the", "battery", "life", "wonderful", "screen"],
-        ["not", "worth", "the", "money", "disappointed", "with", "purchase"],
-        ["perfect", "exactly", "what", "needed", "highly", "recommend"]
-    ]
+    csv_data = base.csv_data
     
-    # === ОБРАБОТКА ===
-    lemmatized_results = []
+    if not csv_data:
+        return "Ошибка: CSV данные не получены", None
     
-    for tokens in tokenized_data:
-        # Лемматизация токенов
-        lemmas = [LEMMA_DICT.get(token, token) for token in tokens]
-        lemmatized_results.append(lemmas)
-    
-    # === РАЗДЕЛЕНИЕ НА ДВЕ ПОЛОВИНЫ ===
-    mid_point = len(lemmatized_results) // 2
-    
-    model1_data = lemmatized_results[:mid_point + len(lemmatized_results) % 2]
-    model2_data = lemmatized_results[mid_point + len(lemmatized_results) % 2:]
-    
-    # === ВЫДАЧА ДАННЫХ ===
-    # Данные будут отправлены на Model1_Training и Model2_Training
-    output_data = {
-        "model1": model1_data,
-        "model2": model2_data
-    }
-    
-    print(f"[{base.CLIENT_NAME}] Lemmatized {len(lemmatized_results)} texts")
-    print(f"[{base.CLIENT_NAME}] Model 1: {len(model1_data)} samples")
-    print(f"[{base.CLIENT_NAME}] Model 2: {len(model2_data)} samples")
-    
-    # return json.dumps(output_data, ensure_ascii=False, indent=2)
-    return f"Lemmatizer: Обработано {len(lemmatized_results)} текстов. Model1={len(model1_data)}, Model2={len(model2_data)}"
+    try:
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        if 'tokens' not in df.columns:
+            return f"Ошибка: Колонка 'tokens' не найдена. Доступны: {list(df.columns)}", None
+        
+        # Преобразуем строку обратно в список
+        df['tokens'] = df['tokens'].apply(
+            lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('[') else []
+        )
+        
+        # Применяем лемматизацию
+        df['lemmas'] = df['tokens'].apply(
+            lambda tokens: [LEMMA_DICT.get(t, t) for t in tokens] if isinstance(tokens, list) else []
+        )
+        
+        # ===== РАЗДЕЛЕНИЕ НА 2 ЧАСТИ =====
+        # Перемешиваем данные
+        df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+        
+        # Делим пополам
+        mid_point = len(df) // 2
+        
+        # Часть 1 для Model1 (binary classification: fruit vs vegetable)
+        df1 = df.iloc[:mid_point].copy()
+        df1['model_target'] = 'model1'
+        
+        # Часть 2 для Model2 (multi-class: predict name)
+        df2 = df.iloc[mid_point:].copy()
+        df2['model_target'] = 'model2'
+        
+        # Объединяем обратно
+        df_final = pd.concat([df1, df2], ignore_index=True)
+        
+        result_csv = df_final.to_csv(index=False)
+        result_msg = f"Lemmatizer: Лемматизировано {len(df)} строк. Разделено: Model1={len(df1)}, Model2={len(df2)}"
+        
+        return result_msg, result_csv
+        
+    except Exception as e:
+        return f"Lemmatizer: Ошибка - {str(e)}", None
 
 base.do_work = do_work
 

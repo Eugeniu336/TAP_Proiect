@@ -4,7 +4,7 @@ PLUGIN 2: Tokenizer
 """
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../client/client_template')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../Client/Client_Template')))
 import Client_Template as base
 
 base.CLIENT_NAME = "Tokenizer"
@@ -12,43 +12,35 @@ base.CLIENT_LEVEL = "2"
 base.CLIENT_MODE = "Последовательно"
 
 def do_work():
-    """
-    Плагин 2: Токенизация
-    """
-    # === ПРИЕМ ДАННЫХ ===
-    # TODO: Здесь будут приходить данные от Text_Cleaner
-    input_data = None  # Данные от предыдущего плагина
+    import pandas as pd
+    import io
     
-    # Для тестирования используем заглушку (очищенные тексты)
-    cleaned_texts = [
-        "great product excellent quality fast delivery",
-        "bad service terrible experience poor quality",
-        "amazing phone love the battery life wonderful screen",
-        "not worth the money disappointed with purchase",
-        "perfect exactly what i needed highly recommend"
-    ]
+    csv_data = base.csv_data
     
-    # === ОБРАБОТКА ===
-    tokenized_results = []
+    if not csv_data:
+        return "Ошибка: CSV данные не получены", None
     
-    for text in cleaned_texts:
-        # Токенизация по пробелам
-        tokens = text.split()
+    try:
+        df = pd.read_csv(io.StringIO(csv_data))
         
-        # Фильтруем слишком короткие токены (меньше 2 символов)
-        tokens = [t for t in tokens if len(t) > 1]
+        # Ищем колонку cleaned_text
+        text_column = 'cleaned_text' if 'cleaned_text' in df.columns else 'name'
         
-        tokenized_results.append(tokens)
-    
-    # === ВЫДАЧА ДАННЫХ ===
-    output_data = tokenized_results
-    
-    total_tokens = sum(len(tokens) for tokens in tokenized_results)
-    print(f"[{base.CLIENT_NAME}] Tokenized {len(tokenized_results)} texts")
-    print(f"[{base.CLIENT_NAME}] Total tokens: {total_tokens}")
-    
-    # return json.dumps(output_data, ensure_ascii=False, indent=2)
-    return f"Tokenizer: Токенизировано {len(tokenized_results)} текстов, всего {total_tokens} токенов"
+        if text_column not in df.columns:
+            return f"Ошибка: Колонка '{text_column}' не найдена. Доступны: {list(df.columns)}", None
+        
+        # Токенизация: разбиваем на слова длиной > 1
+        df['tokens'] = df[text_column].apply(
+            lambda x: [t for t in str(x).split() if len(t) > 1]
+        )
+        
+        result_csv = df.to_csv(index=False)
+        result_msg = f"Tokenizer: Токенизировано {len(df)} строк"
+        
+        return result_msg, result_csv
+        
+    except Exception as e:
+        return f"Tokenizer: Ошибка - {str(e)}", None
 
 base.do_work = do_work
 

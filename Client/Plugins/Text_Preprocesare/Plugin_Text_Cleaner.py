@@ -5,7 +5,7 @@ PLUGIN 1: Text Cleaner
 import sys
 import os
 import re
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../client/client_template')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../Client/Client_Template')))
 import Client_Template as base
 
 base.CLIENT_NAME = "Text_Cleaner"
@@ -13,44 +13,34 @@ base.CLIENT_LEVEL = "1"
 base.CLIENT_MODE = "Последовательно"
 
 def do_work():
-    """
-    Плагин 1: Очистка текста
-    """
-    # === ПРИЕМ ДАННЫХ ===
-    # TODO: Здесь будут приходить данные от сервера
-    input_data = None  # Данные от сервера
+    import pandas as pd
+    import io
     
-    # Для тестирования используем заглушку
-    raw_texts = [
-        "Great product!!! Excellent quality... Fast delivery!!!",
-        "BAD service?? Terrible experience! Poor quality...",
-        "Amazing phone!!! Love the battery life. Wonderful screen!!!",
-        "Not worth the money. Disappointed with purchase.",
-        "Perfect! Exactly what I needed. Highly recommend!!!"
-    ]
+    csv_data = base.csv_data
     
-    # === ОБРАБОТКА ===
-    cleaned_results = []
+    if not csv_data:
+        return "Ошибка: CSV данные не получены", None
     
-    for text in raw_texts:
-        # Приводим к нижнему регистру
-        cleaned = text.lower()
-        
-        # Удаляем специальные символы (оставляем только буквы и пробелы)
+    df = pd.read_csv(io.StringIO(csv_data))
+    
+    # Ищем текстовую колонку (name)
+    text_column = 'name' if 'name' in df.columns else None
+    
+    if text_column is None:
+        return "Ошибка: Колонка 'name' не найдена", None
+    
+    def clean_text(text):
+        cleaned = str(text).lower()
         cleaned = re.sub(r'[^a-zA-Z\s]', '', cleaned)
-        
-        # Удаляем лишние пробелы
         cleaned = ' '.join(cleaned.split())
-        
-        cleaned_results.append(cleaned)
+        return cleaned
     
-    # === ВЫДАЧА ДАННЫХ ===
-    output_data = cleaned_results
+    df['cleaned_text'] = df[text_column].apply(clean_text)
     
-    print(f"[{base.CLIENT_NAME}] Cleaned {len(cleaned_results)} texts")
+    result_csv = df.to_csv(index=False)
+    result_msg = f"Text_Cleaner: Обработано {len(df)} строк"
     
-    # return json.dumps(output_data, ensure_ascii=False, indent=2)
-    return f"Text_Cleaner: Обработано {len(cleaned_results)} текстов"
+    return result_msg, result_csv
 
 base.do_work = do_work
 
