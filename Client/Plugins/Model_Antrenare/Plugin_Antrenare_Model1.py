@@ -10,7 +10,7 @@ import Client_Template as base
 
 base.CLIENT_NAME = "Model1_Training"
 base.CLIENT_LEVEL = "4"
-base.CLIENT_MODE = "Параллельно"
+base.CLIENT_MODE = "Parallel"
 
 def do_work():
     import pandas as pd
@@ -24,7 +24,7 @@ def do_work():
     csv_data = base.csv_data
 
     if not csv_data:
-        return "Ошибка: CSV данные не получены", None
+        return "Error: CSV data not received", None
 
     try:
         df = pd.read_csv(io.StringIO(csv_data))
@@ -33,17 +33,17 @@ def do_work():
         df_model1 = df[df['model_target'] == 'model1'].copy()
 
         if len(df_model1) == 0:
-            return "Ошибка: Нет данных для Model1", None
+            return "Error: No data for Model1", None
 
         # === ПОДГОТОВКА ДАННЫХ ===
         # Features: size, weight, avg_price + encoded: shape, color, taste
-        feature_cols = ['size (cm)', 'weight (g)', 'avg_price (₹)']
+        feature_cols = ['size (cm)', 'weight (g)', 'avg_price (MDL)']
         categorical_cols = ['shape', 'color', 'taste']
 
         # Проверяем наличие колонок
         missing_cols = [col for col in feature_cols + categorical_cols if col not in df_model1.columns]
         if missing_cols:
-            return f"Ошибка: Отсутствуют колонки {missing_cols}", None
+            return f"Error: Missing columns {missing_cols}", None
 
         # Кодируем категориальные признаки
         le_dict = {}
@@ -55,7 +55,7 @@ def do_work():
 
         # Target: type (fruit/vegetable)
         if 'type' not in df_model1.columns:
-            return "Ошибка: Колонка 'type' не найдена", None
+            return "Error: Column 'type' not found", None
 
         le_target = LabelEncoder()
         y = le_target.fit_transform(df_model1['type'])
@@ -109,7 +109,7 @@ def do_work():
 
         result_csv = df_final.to_csv(index=False)
         result_msg = (
-            f"Model1_Training: Decision Tree обучен на {len(X_train)} samples.\n"
+            f"Model1_Training: Decision Tree trained on {len(X_train)} samples.\n"
             f"Train Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}\n"
             f"Classes: {le_target.classes_.tolist()}"
         )
@@ -122,7 +122,7 @@ def do_work():
 
     except Exception as e:
         import traceback
-        error_msg = f"Model1_Training: Ошибка - {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Model1_Training: Error - {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         return error_msg, None
 

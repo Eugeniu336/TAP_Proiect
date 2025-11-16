@@ -1,4 +1,4 @@
-size (cm),shape,weight (g),avg_price (₹),color,taste,type,name
+size (cm),shape,weight (g),avg_price (MDL),color,taste,type,name
 7.3,round,110.9,39.9,yellow,sweet,vegetable,onion
 3.1,oval,9.3,29.9,red,sweet,fruit,cherry
 1.0,round,5.1,10.2,purple,sweet,fruit,grape

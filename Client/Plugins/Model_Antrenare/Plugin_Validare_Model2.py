@@ -10,7 +10,7 @@ import Client_Template as base
 
 base.CLIENT_NAME = "Model2_Validation"
 base.CLIENT_LEVEL = "7"
-base.CLIENT_MODE = "Параллельно"
+base.CLIENT_MODE = "Parallel"
 
 def do_work():
     import pandas as pd
@@ -25,13 +25,13 @@ def do_work():
     csv_data = base.csv_data
 
     if not csv_data:
-        return "Ошибка: CSV данные не получены", None
+        return "Error: CSV data not received", None
 
     try:
         # Загружаем обученную модель
         model_path = 'model2_trained.pkl'
         if not os.path.exists(model_path):
-            return "Ошибка: Модель Model2 не найдена. Сначала запустите Model2_Training", None
+            return "Error: Model2 not found. Please run Model2_Training first", None
 
         with open(model_path, 'rb') as f:
             model_data = pickle.load(f)
@@ -47,7 +47,7 @@ def do_work():
         df_model2 = df[df['model_target'] == 'model2'].copy()
 
         if len(df_model2) == 0:
-            return "Ошибка: Нет данных для Model2", None
+            return "Error: No data for Model2", None
 
         # === ПОДГОТОВКА ДАННЫХ ДЛЯ ВАЛИДАЦИИ ===
         # Применяем те же преобразования
@@ -146,7 +146,7 @@ def do_work():
 
     except Exception as e:
         import traceback
-        error_msg = f"Model2_Validation: Ошибка - {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Model2_Validation: Error - {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         return error_msg, None
 

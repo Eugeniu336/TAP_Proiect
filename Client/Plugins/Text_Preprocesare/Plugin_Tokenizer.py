@@ -9,7 +9,7 @@ import Client_Template as base
 
 base.CLIENT_NAME = "Tokenizer"
 base.CLIENT_LEVEL = "2"
-base.CLIENT_MODE = "Последовательно"
+base.CLIENT_MODE = "Sequential"
 
 def do_work():
     import pandas as pd
@@ -18,7 +18,7 @@ def do_work():
     csv_data = base.csv_data
     
     if not csv_data:
-        return "Ошибка: CSV данные не получены", None
+        return "Error: CSV data not received", None
     
     try:
         df = pd.read_csv(io.StringIO(csv_data))
@@ -27,7 +27,7 @@ def do_work():
         text_column = 'cleaned_text' if 'cleaned_text' in df.columns else 'name'
         
         if text_column not in df.columns:
-            return f"Ошибка: Колонка '{text_column}' не найдена. Доступны: {list(df.columns)}", None
+            return f"Error: Column '{text_column}' not found. Available: {list(df.columns)}", None
         
         # Токенизация: разбиваем на слова длиной > 1
         df['tokens'] = df[text_column].apply(
@@ -35,12 +35,12 @@ def do_work():
         )
         
         result_csv = df.to_csv(index=False)
-        result_msg = f"Tokenizer: Токенизировано {len(df)} строк"
+        result_msg = f"Tokenizer: Tokenized {len(df)} rows"
         
         return result_msg, result_csv
         
     except Exception as e:
-        return f"Tokenizer: Ошибка - {str(e)}", None
+        return f"Tokenizer: Error - {str(e)}", None
 
 base.do_work = do_work
 

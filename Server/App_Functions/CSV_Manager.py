@@ -34,7 +34,7 @@ def load_initial_csv():
     try:
         # Проверяем существование файла
         if not os.path.exists(csv_file_path):
-            print(f"[CSV ERROR] Файл не найден: {csv_file_path}")
+            print(f"[CSV ERROR] File not found: {csv_file_path}")
             return None, None
         
         # Загружаем CSV
@@ -42,7 +42,7 @@ def load_initial_csv():
         
         # Проверяем, что данные загружены
         if df.empty:
-            print(f"[CSV ERROR] Файл пустой: {csv_file_path}")
+            print(f"[CSV ERROR] File is empty: {csv_file_path}")
             return None, None
         
         # Сохраняем в памяти
@@ -52,23 +52,23 @@ def load_initial_csv():
         with open(current_csv_file, 'w', encoding='utf-8') as f:
             f.write(current_csv_data)
         
-        print(f"[CSV] ✅ Загружен исходный файл")
-        print(f"[CSV] 📊 Размер: {len(current_csv_data):,} байт")
-        print(f"[CSV] 📋 Строк: {len(df):,}")
-        print(f"[CSV] 📁 Колонок: {len(df.columns)}")
-        print(f"[CSV] 💾 Временный файл: {current_csv_file}")
+        print(f"[CSV] ✅ Original file loaded")
+        print(f"[CSV] 📊 Size: {len(current_csv_data):,} bytes")
+        print(f"[CSV] 📋 Rows: {len(df):,}")
+        print(f"[CSV] 📁 Columns: {len(df.columns)}")
+        print(f"[CSV] 💾 Temp file: {current_csv_file}")
         
         return current_csv_data, current_csv_file
         
     except FileNotFoundError:
-        print(f"[CSV ERROR] Файл не найден: {csv_file_path}")
-        print(f"[CSV ERROR] Убедитесь, что датасет находится по пути: {csv_file_path}")
+        print(f"[CSV ERROR] File not found: {csv_file_path}")
+        print(f"[CSV ERROR] Make sure dataset is located at: {csv_file_path}")
         return None, None
     except pd.errors.EmptyDataError:
-        print(f"[CSV ERROR] Файл пустой или поврежден: {csv_file_path}")
+        print(f"[CSV ERROR] File is empty or corrupted: {csv_file_path}")
         return None, None
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при загрузке CSV: {e}")
+        print(f"[CSV ERROR] Error loading CSV: {e}")
         import traceback
         traceback.print_exc()
         return None, None
@@ -117,11 +117,11 @@ def set_current_csv_data(data):
         with open(current_csv_file, 'w', encoding='utf-8') as f:
             f.write(current_csv_data)
         
-        print(f"[CSV] 🔄 Данные обновлены ({len(current_csv_data):,} байт)")
+        print(f"[CSV] 🔄 Data updated ({len(current_csv_data):,} bytes)")
         return True
         
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при обновлении данных: {e}")
+        print(f"[CSV ERROR] Error updating data: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -139,17 +139,17 @@ def reload_csv_from_file():
     
     try:
         if not os.path.exists(current_csv_file):
-            print(f"[CSV ERROR] Временный файл не найден: {current_csv_file}")
+            print(f"[CSV ERROR] Temp file not found: {current_csv_file}")
             return False
         
         with open(current_csv_file, 'r', encoding='utf-8') as f:
             current_csv_data = f.read()
         
-        print(f"[CSV] 🔄 Данные перезагружены из {current_csv_file}")
+        print(f"[CSV] 🔄 Data reloaded from {current_csv_file}")
         return True
         
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при перезагрузке: {e}")
+        print(f"[CSV ERROR] Error reloading: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -184,7 +184,7 @@ def get_csv_info():
         }
         
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при получении информации: {e}")
+        print(f"[CSV ERROR] Error getting info: {e}")
         return None
 
 def validate_csv_data():
@@ -195,22 +195,22 @@ def validate_csv_data():
         tuple: (bool, str) - (валидность, сообщение об ошибке)
     """
     if current_csv_data is None:
-        return False, "Данные не загружены"
+        return False, "Data not loaded"
     
     try:
         import io
         df = pd.read_csv(io.StringIO(current_csv_data))
         
         if df.empty:
-            return False, "CSV данные пустые"
+            return False, "CSV data is empty"
         
         if len(df.columns) == 0:
-            return False, "Нет колонок в данных"
+            return False, "No columns in data"
         
-        return True, "Данные корректны"
+        return True, "Data is valid"
         
     except Exception as e:
-        return False, f"Ошибка валидации: {str(e)}"
+        return False, f"Validation error: {str(e)}"
 
 def reset_to_initial():
     """
@@ -221,7 +221,7 @@ def reset_to_initial():
     Returns:
         tuple: (csv_data, csv_file) или (None, None) в случае ошибки
     """
-    print("[CSV] 🔄 Сброс к исходному состоянию...")
+    print("[CSV] 🔄 Resetting to initial state...")
     return load_initial_csv()
 
 def backup_current_data(backup_name=None):
@@ -235,7 +235,7 @@ def backup_current_data(backup_name=None):
         str: Путь к файлу бэкапа или None в случае ошибки
     """
     if current_csv_data is None:
-        print("[CSV ERROR] Нет данных для бэкапа")
+        print("[CSV ERROR] No data to backup")
         return None
     
     try:
@@ -256,11 +256,11 @@ def backup_current_data(backup_name=None):
         with open(backup_path, 'w', encoding='utf-8') as f:
             f.write(current_csv_data)
         
-        print(f"[CSV] 💾 Бэкап создан: {backup_path}")
+        print(f"[CSV] 💾 Backup created: {backup_path}")
         return str(backup_path)
         
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при создании бэкапа: {e}")
+        print(f"[CSV ERROR] Error creating backup: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -279,7 +279,7 @@ def get_dataframe():
         import io
         return pd.read_csv(io.StringIO(current_csv_data))
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при создании DataFrame: {e}")
+        print(f"[CSV ERROR] Error creating DataFrame: {e}")
         return None
 
 def save_dataframe(df, update_current=True):
@@ -302,11 +302,11 @@ def save_dataframe(df, update_current=True):
             # Только сохраняем в файл без обновления в памяти
             with open(current_csv_file, 'w', encoding='utf-8') as f:
                 f.write(csv_string)
-            print(f"[CSV] 💾 DataFrame сохранен в {current_csv_file}")
+            print(f"[CSV] 💾 DataFrame saved to {current_csv_file}")
             return True
             
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при сохранении DataFrame: {e}")
+        print(f"[CSV ERROR] Error saving DataFrame: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -330,10 +330,10 @@ def cleanup_temp_files():
     try:
         if os.path.exists(current_csv_file):
             os.remove(current_csv_file)
-            print(f"[CSV] 🗑️ Временный файл удален: {current_csv_file}")
+            print(f"[CSV] 🗑️ Temp file deleted: {current_csv_file}")
         return True
     except Exception as e:
-        print(f"[CSV ERROR] Ошибка при удалении временных файлов: {e}")
+        print(f"[CSV ERROR] Error deleting temp files: {e}")
         return False
 
 # ===================================== Служебные функции =====================================
@@ -343,25 +343,25 @@ def _print_csv_stats():
     info = get_csv_info()
     if info:
         print("\n" + "="*60)
-        print("📊 СТАТИСТИКА CSV ДАННЫХ")
+        print("📊 CSV DATA STATISTICS")
         print("="*60)
-        print(f"Строк:        {info['rows']:,}")
-        print(f"Колонок:      {info['columns']}")
-        print(f"Размер:       {info['size_bytes']:,} байт")
-        print(f"Файл:         {info['file_path']}")
-        print(f"Колонки:      {', '.join(info['columns_list'][:5])}")
+        print(f"Rows:         {info['rows']:,}")
+        print(f"Columns:      {info['columns']}")
+        print(f"Size:         {info['size_bytes']:,} bytes")
+        print(f"File:         {info['file_path']}")
+        print(f"Columns:      {', '.join(info['columns_list'][:5])}")
         if len(info['columns_list']) > 5:
-            print(f"              ... и еще {len(info['columns_list']) - 5}")
+            print(f"              ... and {len(info['columns_list']) - 5} more")
         print("="*60 + "\n")
 
 # ===================================== Тестирование модуля =====================================
 
 if __name__ == "__main__":
     """Тестирование функций модуля"""
-    print("🧪 Тестирование модуля csv_manager.py\n")
+    print("🧪 Testing csv_manager.py module\n")
     
     # Тест 1: Загрузка данных
-    print("Тест 1: Загрузка исходных данных")
+    print("Test 1: Loading original data")
     csv_data, csv_file = load_initial_csv()
     if csv_data and csv_file:
         print("✅ PASSED\n")
@@ -369,7 +369,7 @@ if __name__ == "__main__":
         print("❌ FAILED\n")
     
     # Тест 2: Получение информации
-    print("Тест 2: Получение информации о данных")
+    print("Test 2: Getting data info")
     info = get_csv_info()
     if info:
         print("✅ PASSED")
@@ -378,16 +378,16 @@ if __name__ == "__main__":
         print("❌ FAILED\n")
     
     # Тест 3: Валидация
-    print("Тест 3: Валидация данных")
+    print("Test 3: Data validation")
     is_valid, message = validate_csv_data()
-    print(f"Результат: {message}")
+    print(f"Result: {message}")
     if is_valid:
         print("✅ PASSED\n")
     else:
         print("❌ FAILED\n")
     
     # Тест 4: Создание бэкапа
-    print("Тест 4: Создание бэкапа")
+    print("Test 4: Creating backup")
     backup_path = backup_current_data("test_backup.csv")
     if backup_path:
         print("✅ PASSED\n")
@@ -395,7 +395,7 @@ if __name__ == "__main__":
         print("❌ FAILED\n")
     
     # Тест 5: Работа с DataFrame
-    print("Тест 5: Получение DataFrame")
+    print("Test 5: Getting DataFrame")
     df = get_dataframe()
     if df is not None:
         print(f"✅ PASSED - DataFrame shape: {df.shape}\n")
@@ -403,7 +403,7 @@ if __name__ == "__main__":
         print("❌ FAILED\n")
     
     # Тест 6: Обновление данных
-    print("Тест 6: Обновление данных")
+    print("Test 6: Updating data")
     test_data = "col1,col2\n1,2\n3,4"
     if set_current_csv_data(test_data):
         print("✅ PASSED\n")
@@ -412,4 +412,4 @@ if __name__ == "__main__":
     else:
         print("❌ FAILED\n")
     
-    print("🎉 Тестирование завершено!")
+    print("🎉 Testing completed!")

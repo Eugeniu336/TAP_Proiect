@@ -55,7 +55,7 @@ def recv_exact(conn: socket.socket, n: int) -> bytes:
     while len(buf) < n:
         chunk = conn.recv(n - len(buf))
         if not chunk:
-            raise ConnectionError("Соединение закрыто клиентом")
+            raise ConnectionError("Connection closed by client")
         buf.extend(chunk)
     return bytes(buf)
 
@@ -85,7 +85,7 @@ def recv_message(conn: socket.socket):
 def send_file_to_client(conn, filepath):
     """Отправка файла клиенту"""
     if not os.path.exists(filepath):
-        print(f"[!] Файл не найден: {filepath}")
+        print(f"[!] File not found: {filepath}")
         return False
 
     with open(filepath, 'rb') as f:
@@ -99,7 +99,7 @@ def send_file_to_client(conn, filepath):
     }
 
     send_message(conn, header, data)
-    print(f"[-->] Отправлен файл {filename} ({len(data)} байт)")
+    print(f"[-->] Sent file {filename} ({len(data)} bytes)")
     return True
 
 
@@ -117,7 +117,7 @@ def handle_client(conn, addr):
         name, level, mode = data.split('|')
 
         if name in names:
-            conn.send("ERROR: Имя уже используется".encode('utf-8'))
+            conn.send("ERROR: Name already in use".encode('utf-8'))
             conn.close()
             return
 
@@ -129,16 +129,16 @@ def handle_client(conn, addr):
 
         # Сигнал для обновления GUI
         gui_signals.update_list.emit()
-        print(f"[+] Клиент подключён: {name} (Lvl {level}, {mode}) — {addr}")
+        print(f"[+] Client connected: {name} (Lvl {level}, {mode}) — {addr}")
 
         # Держим соединение открытым
         while True:
             time.sleep(1)
 
     except socket.timeout:
-        print(f"[!] Таймаут подключения {addr}")
+        print(f"[!] Connection timeout {addr}")
     except Exception as e:
-        print(f"[!] Ошибка клиента {addr}: {e}")
+        print(f"[!] Client error {addr}: {e}")
     finally:
         if addr in clients:
             disconnect_client(addr, silent=True)
@@ -148,7 +148,7 @@ def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST, PORT))
     server.listen()
-    print(f"[СЕРВЕР ЗАПУЩЕН] {HOST}:{PORT}")
+    print(f"[SERVER STARTED] {HOST}:{PORT}")
     threading.Thread(target=accept_clients, args=(server,), daemon=True).start()
 
 
@@ -174,7 +174,7 @@ def disconnect_client(addr, silent=False):
     if name in names:
         names.remove(name)
     if not silent:
-        print(f"[-] Клиент отключён: {name}")
+        print(f"[-] Client disconnected: {name}")
     gui_signals.update_list.emit()
 
 
@@ -188,7 +188,7 @@ def disconnect_all():
 def request_work_from_clients():
     """Запуск рабочего процесса через WorkflowManager"""
     if not clients:
-        QMessageBox.information(None, "Инфо", "Нет подключённых клиентов.")
+        QMessageBox.information(None, "Info", "No connected clients.")
         return
 
     # Создаём WorkflowManager с callback'ами
@@ -243,7 +243,7 @@ class ServerWindow(QWidget):
         self.drag_pos = QPoint()
 
         # Заголовок
-        self.title_label = QLabel(f"Сервер: {HOST}:{PORT}", self)
+        self.title_label = QLabel(f"Server: {HOST}:{PORT}", self)
         self.title_label.setStyleSheet("color: white; font-size: 16px; font-weight: bold;")
         self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.move(175, 675)
@@ -381,7 +381,7 @@ class ServerWindow(QWidget):
         """Отключение выбранного клиента"""
         current_row = self.client_list.currentRow()
         if current_row == -1:
-            QMessageBox.information(self, "Инфо", "Выберите клиента для отключения.")
+            QMessageBox.information(self, "Info", "Select a client to disconnect.")
             return
         addr = list(clients.keys())[current_row]
         disconnect_client(addr)

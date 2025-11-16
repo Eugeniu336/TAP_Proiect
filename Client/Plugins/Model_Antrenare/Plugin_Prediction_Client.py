@@ -11,7 +11,7 @@ import Client_Template as base
 
 base.CLIENT_NAME = "Prediction_Client"
 base.CLIENT_LEVEL = "8"
-base.CLIENT_MODE = "Последовательно"
+base.CLIENT_MODE = "Sequential"
 
 
 def do_work():
@@ -24,7 +24,7 @@ def do_work():
     csv_data = base.csv_data
 
     if not csv_data:
-        return "Ошибка: CSV данные не получены", None
+        return "Error: CSV data not received", None
 
     try:
         # Проверяем наличие обученных моделей
@@ -32,10 +32,10 @@ def do_work():
         model2_path = 'model2_trained.pkl'
 
         if not os.path.exists(model1_path):
-            return "❌ Модель Model1 не найдена! Сначала обучите Model1.", None
+            return "❌ Model1 not found! Please train Model1 first.", None
 
         if not os.path.exists(model2_path):
-            return "❌ Модель Model2 не найдена! Сначала обучите Model2.", None
+            return "❌ Model2 not found! Please train Model2 first.", None
 
         # Загружаем обе модели
         with open(model1_path, 'rb') as f:
@@ -71,7 +71,7 @@ def do_work():
             print(f"   Size: {row['size (cm)']} cm")
             print(f"   Shape: {row['shape']}")
             print(f"   Weight: {row['weight (g)']} g")
-            print(f"   Price: {row['avg_price (₹)']} ₹")
+            print(f"   Price: {row['avg_price (MDL)']} MDL")
             print(f"   Color: {row['color']}")
             print(f"   Taste: {row['taste']}")
 
@@ -80,7 +80,7 @@ def do_work():
             X1_sample = []
             X1_sample.append(row['size (cm)'])
             X1_sample.append(row['weight (g)'])
-            X1_sample.append(row['avg_price (₹)'])
+            X1_sample.append(row['avg_price (MDL)'])
 
             # Кодируем категориальные признаки для Model1
             for col in ['shape', 'color', 'taste']:
@@ -109,7 +109,7 @@ def do_work():
             X2_sample = []
             X2_sample.append(row['size (cm)'])
             X2_sample.append(row['weight (g)'])
-            X2_sample.append(row['avg_price (₹)'])
+            X2_sample.append(row['avg_price (MDL)'])
 
             # Кодируем категориальные признаки для Model2
             for col in ['shape', 'color', 'taste', 'type']:
@@ -163,7 +163,7 @@ def do_work():
                     'size': float(row['size (cm)']),
                     'shape': str(row['shape']),
                     'weight': float(row['weight (g)']),
-                    'price': float(row['avg_price (₹)']),
+                    'price': float(row['avg_price (MDL)']),
                     'color': str(row['color']),
                     'taste': str(row['taste'])
                 },
@@ -216,8 +216,8 @@ def do_work():
         print("=" * 70 + "\n")
 
         result_msg = (
-            f"Prediction_Client: Сделано {len(predictions)} предсказаний.\n"
-            f"Результаты сохранены в predictions_results.json"
+            f"Prediction_Client: Made {len(predictions)} predictions.\n"
+            f"Results saved to predictions_results.json"
         )
 
         # Добавляем предсказания в CSV
@@ -234,7 +234,7 @@ def do_work():
 
     except Exception as e:
         import traceback
-        error_msg = f"Prediction_Client: Ошибка - {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Prediction_Client: Error - {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         return error_msg, None
 

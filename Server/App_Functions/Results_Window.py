@@ -19,13 +19,13 @@ def show_results_window():
     """Интерактивное окно с результатами и возможностью делать предсказания"""
     # ВАЖНО: Проверяем, что мы в главном потоке Qt
     if QApplication.instance() is None:
-        QMessageBox.critical(None, "Ошибка", "QApplication не инициализирован")
+        QMessageBox.critical(None, "Error", "QApplication not initialized")
         return
 
     current_csv_data = get_current_csv_data()
 
     if not current_csv_data:
-        QMessageBox.information(None, "Инфо", "Нет данных для отображения")
+        QMessageBox.information(None, "Info", "No data to display")
         return
 
     try:
@@ -57,7 +57,7 @@ def show_results_window():
         QTimer.singleShot(0, create_window)
 
     except Exception as e:
-        QMessageBox.critical(None, "Ошибка", f"Не удалось отобразить результаты:\n{e}")
+        QMessageBox.critical(None, "Error", f"Failed to display results:\n{e}")
         import traceback
         traceback.print_exc()
 
@@ -161,44 +161,44 @@ class ResultsWindow(QWidget):
         stats_layout.addWidget(stats_text)
         stats_widget.setLayout(stats_layout)
 
-        self.tab_widget.addTab(stats_widget, "📊 Статистика")
+        self.tab_widget.addTab(stats_widget, "📊 Statistics")
 
     def generate_stats_output(self):
         """Генерация текста статистики"""
         output = ""
         output += "=" * 80 + "\n"
-        output += " " * 25 + "🎉 РЕЗУЛЬТАТЫ ОБУЧЕНИЯ 🎉\n"
+        output += " " * 25 + "🎉 TRAINING RESULTS 🎉\n"
         output += "=" * 80 + "\n\n"
 
-        output += f"📂 Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        output += f"📊 Всего записей: {len(self.df):,}\n"
-        output += f"📋 Колонок: {len(self.df.columns)}\n\n"
+        output += f"📂 Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        output += f"📊 Total Records: {len(self.df):,}\n"
+        output += f"📋 Columns: {len(self.df.columns)}\n\n"
 
         # Статистика предобработки
         output += "─" * 80 + "\n"
-        output += "📝 ПРЕДОБРАБОТКА ДАННЫХ\n"
+        output += "📝 DATA PREPROCESSING\n"
         output += "─" * 80 + "\n"
 
         if 'cleaned_text' in self.df.columns:
-            output += f"✅ Text Cleaning: {self.df['cleaned_text'].notna().sum():,} записей\n"
+            output += f"✅ Text Cleaning: {self.df['cleaned_text'].notna().sum():,} records\n"
         if 'tokens' in self.df.columns:
-            output += f"✅ Tokenization: {self.df['tokens'].notna().sum():,} записей\n"
+            output += f"✅ Tokenization: {self.df['tokens'].notna().sum():,} records\n"
         if 'lemmas' in self.df.columns:
-            output += f"✅ Lemmatization: {self.df['lemmas'].notna().sum():,} записей\n"
+            output += f"✅ Lemmatization: {self.df['lemmas'].notna().sum():,} records\n"
 
         if 'model_target' in self.df.columns:
             m1 = len(self.df[self.df['model_target'] == 'model1'])
             m2 = len(self.df[self.df['model_target'] == 'model2'])
-            output += f"\n📊 Разделение данных:\n"
+            output += f"\n📊 Data Split:\n"
             output += f"   • Model 1 (Binary): {m1:,} ({m1 / len(self.df) * 100:.1f}%)\n"
             output += f"   • Model 2 (Multi-class): {m2:,} ({m2 / len(self.df) * 100:.1f}%)\n"
 
         output += "\n" + "─" * 80 + "\n"
-        output += "🤖 МОДЕЛЬ 1: BINARY CLASSIFICATION (Decision Tree)\n"
+        output += "🤖 MODEL 1: BINARY CLASSIFICATION (Decision Tree)\n"
         output += "─" * 80 + "\n"
 
         if self.model1_data:
-            output += f"📈 Обучение:\n"
+            output += f"📈 Training:\n"
             output += f"   • Train Accuracy: {self.model1_data['train_acc']:.4f} ({self.model1_data['train_acc'] * 100:.2f}%)\n"
             output += f"   • Test Accuracy:  {self.model1_data['test_acc']:.4f} ({self.model1_data['test_acc'] * 100:.2f}%)\n"
             output += f"   • Train Size: {self.model1_data['train_size']:,} samples\n"
@@ -208,18 +208,18 @@ class ResultsWindow(QWidget):
             if 'model1_val_accuracy' in self.df.columns:
                 val_acc = self.df['model1_val_accuracy'].iloc[0]
                 cv_mean = self.df.get('model1_cv_mean', pd.Series([0])).iloc[0]
-                output += f"\n📊 Валидация:\n"
+                output += f"\n📊 Validation:\n"
                 output += f"   • Validation Accuracy: {val_acc:.4f} ({val_acc * 100:.2f}%)\n"
                 output += f"   • Cross-Validation: {cv_mean:.4f} ({cv_mean * 100:.2f}%)\n"
         else:
-            output += "❌ Модель не обучена\n"
+            output += "❌ Model not trained\n"
 
         output += "\n" + "─" * 80 + "\n"
-        output += "🤖 МОДЕЛЬ 2: MULTI-CLASS CLASSIFICATION (Random Forest)\n"
+        output += "🤖 MODEL 2: MULTI-CLASS CLASSIFICATION (Random Forest)\n"
         output += "─" * 80 + "\n"
 
         if self.model2_data:
-            output += f"📈 Обучение:\n"
+            output += f"📈 Training:\n"
             output += f"   • Train Accuracy: {self.model2_data['train_acc']:.4f} ({self.model2_data['train_acc'] * 100:.2f}%)\n"
             output += f"   • Test Accuracy:  {self.model2_data['test_acc']:.4f} ({self.model2_data['test_acc'] * 100:.2f}%)\n"
             output += f"   • Train Size: {self.model2_data['train_size']:,} samples\n"
@@ -236,14 +236,14 @@ class ResultsWindow(QWidget):
             if 'model2_val_accuracy' in self.df.columns:
                 val_acc = self.df['model2_val_accuracy'].iloc[0]
                 cv_mean = self.df.get('model2_cv_mean', pd.Series([0])).iloc[0]
-                output += f"\n📊 Валидация:\n"
+                output += f"\n📊 Validation:\n"
                 output += f"   • Validation Accuracy: {val_acc:.4f} ({val_acc * 100:.2f}%)\n"
                 output += f"   • Cross-Validation: {cv_mean:.4f} ({cv_mean * 100:.2f}%)\n"
         else:
-            output += "❌ Модель не обучена\n"
+            output += "❌ Model not trained\n"
 
         output += "\n" + "=" * 80 + "\n"
-        output += " " * 20 + "✨ МОДЕЛИ ГОТОВЫ К ИСПОЛЬЗОВАНИЮ ✨\n"
+        output += " " * 20 + "✨ MODELS READY TO USE ✨\n"
         output += "=" * 80 + "\n"
 
         return output
@@ -255,7 +255,7 @@ class ResultsWindow(QWidget):
         predict_layout = QVBoxLayout()
 
         # Заголовок
-        title_label = QLabel("🔮 Тестирование моделей")
+        title_label = QLabel("🔮 Model Testing")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("""
             font-size: 20px;
@@ -268,7 +268,7 @@ class ResultsWindow(QWidget):
         predict_layout.addWidget(title_label)
 
         # Форма ввода
-        input_group = QGroupBox("📝 Входные параметры")
+        input_group = QGroupBox("📝 Input Parameters")
         input_group.setStyleSheet("""
             QGroupBox {
                 font-size: 20px;
@@ -333,7 +333,7 @@ class ResultsWindow(QWidget):
         self.fields = {}
 
         row = 0
-        label = QLabel("Размер (см):")
+        label = QLabel("Size (cm):")
         label.setStyleSheet(label_style)
         self.size_entry = QLineEdit("5.0")
         self.size_entry.setStyleSheet(input_style)
@@ -342,7 +342,7 @@ class ResultsWindow(QWidget):
         self.fields['size'] = self.size_entry
 
         row += 1
-        label = QLabel("Вес (г):")
+        label = QLabel("Weight (g):")
         label.setStyleSheet(label_style)
         self.weight_entry = QLineEdit("150")
         self.weight_entry.setStyleSheet(input_style)
@@ -351,7 +351,7 @@ class ResultsWindow(QWidget):
         self.fields['weight'] = self.weight_entry
 
         row += 1
-        label = QLabel("Цена (₹):")
+        label = QLabel("Price (MDL):")
         label.setStyleSheet(label_style)
         self.price_entry = QLineEdit("50")
         self.price_entry.setStyleSheet(input_style)
@@ -360,7 +360,7 @@ class ResultsWindow(QWidget):
         self.fields['price'] = self.price_entry
 
         row += 1
-        label = QLabel("Форма:")
+        label = QLabel("Shape:")
         label.setStyleSheet(label_style)
         self.shape_combo = QComboBox()
         self.shape_combo.addItems(unique_shapes)
@@ -370,7 +370,7 @@ class ResultsWindow(QWidget):
         self.fields['shape'] = self.shape_combo
 
         row += 1
-        label = QLabel("Цвет:")
+        label = QLabel("Color:")
         label.setStyleSheet(label_style)
         self.color_combo = QComboBox()
         self.color_combo.addItems(unique_colors)
@@ -380,7 +380,7 @@ class ResultsWindow(QWidget):
         self.fields['color'] = self.color_combo
 
         row += 1
-        label = QLabel("Вкус:")
+        label = QLabel("Taste:")
         label.setStyleSheet(label_style)
         self.taste_combo = QComboBox()
         self.taste_combo.addItems(unique_tastes)
@@ -393,7 +393,7 @@ class ResultsWindow(QWidget):
         predict_layout.addWidget(input_group)
 
         # Кнопка предсказания
-        predict_btn = QPushButton("🔮 Сделать предсказание")
+        predict_btn = QPushButton("🔮 Make Prediction")
         predict_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
@@ -415,7 +415,7 @@ class ResultsWindow(QWidget):
         predict_layout.addWidget(predict_btn)
 
         # Результат
-        result_group = QGroupBox("📊 Результаты предсказания")
+        result_group = QGroupBox("📊 Prediction Results")
         result_group.setStyleSheet("""
             QGroupBox {
                 font-size: 20px;
@@ -456,12 +456,12 @@ class ResultsWindow(QWidget):
         predict_layout.addWidget(result_group)
 
         predict_widget.setLayout(predict_layout)
-        self.tab_widget.addTab(predict_widget, "🔮 Предсказания")
+        self.tab_widget.addTab(predict_widget, "🔮 Predictions")
 
     def make_prediction(self):
         """Функция предсказания"""
         if not self.model1_data or not self.model2_data:
-            self.result_text.setPlainText("❌ Модели не обучены! Сначала запустите обучение.")
+            self.result_text.setPlainText("❌ Models not trained! Please run training first.")
             return
 
         try:
@@ -477,7 +477,7 @@ class ResultsWindow(QWidget):
             X1_data = {
                 'size (cm)': [size],
                 'weight (g)': [weight],
-                'avg_price (₹)': [price]
+                'avg_price (MDL)': [price]
             }
 
             # Кодируем категориальные признаки для Model1
@@ -501,7 +501,7 @@ class ResultsWindow(QWidget):
             X2_data = {
                 'size (cm)': [size],
                 'weight (g)': [weight],
-                'avg_price (₹)': [price]
+                'avg_price (MDL)': [price]
             }
 
             for col in ['shape', 'color', 'taste', 'type']:
@@ -539,7 +539,7 @@ class ResultsWindow(QWidget):
             self.result_text.setPlainText(result)
 
         except Exception as e:
-            self.result_text.setPlainText(f"❌ Ошибка при предсказании:\n{str(e)}")
+            self.result_text.setPlainText(f"❌ Prediction error:\n{str(e)}")
             import traceback
             traceback.print_exc()
 
@@ -549,23 +549,23 @@ class ResultsWindow(QWidget):
         """Генерация текста результата предсказания"""
         result = ""
         result += "=" * 70 + "\n"
-        result += "                    🔮 РЕЗУЛЬТАТ ПРЕДСКАЗАНИЯ\n"
+        result += "                    🔮 PREDICTION RESULTS\n"
         result += "=" * 70 + "\n\n"
 
-        result += "📝 Входные данные:\n"
-        result += f"   • Размер: {size} см\n"
-        result += f"   • Вес: {weight} г\n"
-        result += f"   • Цена: {price} ₹\n"
-        result += f"   • Форма: {shape}\n"
-        result += f"   • Цвет: {color}\n"
-        result += f"   • Вкус: {taste}\n"
+        result += "📝 Input Data:\n"
+        result += f"   • Size: {size} cm\n"
+        result += f"   • Weight: {weight} g\n"
+        result += f"   • Price: {price} MDL\n"
+        result += f"   • Shape: {shape}\n"
+        result += f"   • Color: {color}\n"
+        result += f"   • Taste: {taste}\n"
 
         result += "\n" + "─" * 70 + "\n"
         result += "🤖 MODEL 1: Binary Classification\n"
         result += "─" * 70 + "\n"
-        result += f"   Тип: {pred1_label.upper()}\n"
-        result += f"   Уверенность: {max(pred1_proba) * 100:.2f}%\n"
-        result += f"\n   Распределение вероятностей:\n"
+        result += f"   Type: {pred1_label.upper()}\n"
+        result += f"   Confidence: {max(pred1_proba) * 100:.2f}%\n"
+        result += f"\n   Probability Distribution:\n"
         for i, cls in enumerate(self.model1_data['le_target'].classes_):
             bar_len = int(pred1_proba[i] * 40)
             bar = "█" * bar_len + "░" * (40 - bar_len)
@@ -574,16 +574,16 @@ class ResultsWindow(QWidget):
         result += "\n" + "─" * 70 + "\n"
         result += "🤖 MODEL 2: Multi-class Classification\n"
         result += "─" * 70 + "\n"
-        result += f"   Название: {pred2_label.upper()}\n"
-        result += f"   Уверенность: {max(top3_probas) * 100:.2f}%\n"
-        result += f"\n   Топ-3 предсказания:\n"
+        result += f"   Name: {pred2_label.upper()}\n"
+        result += f"   Confidence: {max(top3_probas) * 100:.2f}%\n"
+        result += f"\n   Top-3 Predictions:\n"
         for i, (label, proba) in enumerate(zip(top3_labels, top3_probas), 1):
             bar_len = int(proba * 40)
             bar = "█" * bar_len + "░" * (40 - bar_len)
             result += f"   {i}. {label:15s} [{bar}] {proba * 100:5.2f}%\n"
 
         result += "\n" + "=" * 70 + "\n"
-        result += f"                    ✅ Итог: {pred2_label.upper()}\n"
+        result += f"                    ✅ Result: {pred2_label.upper()}\n"
         result += "=" * 70 + "\n"
 
         return result
@@ -616,14 +616,14 @@ class ResultsWindow(QWidget):
 
             history_output = ""
             history_output += "=" * 80 + "\n"
-            history_output += " " * 25 + "📜 ИСТОРИЯ ПРЕДСКАЗАНИЙ\n"
+            history_output += " " * 25 + "📜 PREDICTION HISTORY\n"
             history_output += "=" * 80 + "\n\n"
-            history_output += f"Всего предсказаний: {len(predictions)}\n\n"
+            history_output += f"Total predictions: {len(predictions)}\n\n"
 
             for i, pred in enumerate(predictions[:20], 1):
-                history_output += f"─── Предсказание #{i} {'─' * 60}\n"
+                history_output += f"─── Prediction #{i} {'─' * 60}\n"
                 inp = pred['input']
-                history_output += f"Input: {inp['color']} {inp['shape']}, {inp['size']} см, {inp['weight']} г\n"
+                history_output += f"Input: {inp['color']} {inp['shape']}, {inp['size']} cm, {inp['weight']} g\n"
 
                 m1 = pred['predictions']['model1']
                 history_output += f"Model1: {m1['type']} ({m1['confidence'] * 100:.1f}%)\n"
@@ -643,9 +643,9 @@ class ResultsWindow(QWidget):
             history_text.setPlainText(history_output)
 
         except Exception as e:
-            history_text.setPlainText(f"❌ Ошибка загрузки истории:\n{str(e)}")
+            history_text.setPlainText(f"❌ History loading error:\n{str(e)}")
 
         history_layout.addWidget(history_text)
         history_widget.setLayout(history_layout)
 
-        self.tab_widget.addTab(history_widget, "📜 История")
+        self.tab_widget.addTab(history_widget, "📜 History")

@@ -41,37 +41,37 @@ class WorkflowManager:
         sorted_clients = sorted(self.clients.items(), key=lambda item: item[1][2])
         modes = set(client[3] for client in self.clients.values())
         
-        has_sequential = "Последовательно" in modes
-        has_parallel = "Параллельно" in modes
+        has_sequential = "Sequential" in modes
+        has_parallel = "Parallel" in modes
         
         # Шаг 1: Последовательные клиенты (БЕЗ Prediction_Client - уровень 8)
         if has_sequential:
             print("\n" + "="*70)
-            print("[ЭТАП 1] Запуск последовательных клиентов...")
+            print("[STAGE 1] Starting sequential clients...")
             print("="*70)
             self._run_sequential(sorted_clients, exclude_level=8)
             print("\n" + "="*70)
-            print("[ЭТАП 1] ✅ Последовательные клиенты завершены!")
+            print("[STAGE 1] ✅ Sequential clients completed!")
             print("="*70 + "\n")
         
         # Шаг 2: Параллельные клиенты
         if has_parallel:
             print("\n" + "="*70)
-            print("[ЭТАП 2] Запуск параллельных клиентов...")
+            print("[STAGE 2] Starting parallel clients...")
             print("="*70)
             self._run_parallel(sorted_clients)
             print("\n" + "="*70)
-            print("[ЭТАП 2] ✅ Параллельные клиенты завершены!")
+            print("[STAGE 2] ✅ Parallel clients completed!")
             print("="*70 + "\n")
         
         # Шаг 3: Prediction_Client (ПОСЛЕ обучения моделей - только уровень 8)
         if has_sequential:
             print("\n" + "="*70)
-            print("[ЭТАП 3] Запуск Prediction Client...")
+            print("[STAGE 3] Starting Prediction Client...")
             print("="*70)
             self._run_sequential(sorted_clients, only_level=8)
             print("\n" + "="*70)
-            print("[ЭТАП 3] ✅ Prediction Client завершен!")
+            print("[STAGE 3] ✅ Prediction Client completed!")
             print("="*70 + "\n")
         
         # Шаг 4: Сохранение финального результата
@@ -81,16 +81,16 @@ class WorkflowManager:
         """Последовательная обработка клиентами"""
         global current_csv_data, current_csv_file
         
-        print("[РЕЖИМ] Последовательно")
+        print("[MODE] Sequential")
         
         if current_csv_data is None:
-            print("[!] ОШИБКА: CSV данные не загружены!")
+            print("[!] ERROR: CSV data not loaded!")
             return
         
         last_client_name = None
         
         for addr, (conn, name, level, mode) in sorted_clients:
-            if mode != "Последовательно":
+            if mode != "Sequential":
                 continue
             
             # Фильтрация по уровню
@@ -100,11 +100,11 @@ class WorkflowManager:
                 continue
             
             if addr not in self.clients:
-                print(f"[!] Клиент {name} отключён, пропускаем")
+                print(f"[!] Client {name} disconnected, skipping")
                 continue
             
             try:
-                print(f"\n[→] Отправка файла клиенту {name} (Lvl {level})")
+                print(f"\n[→] Sending file to client {name} (Lvl {level})")
                 
                 conn.settimeout(180)
                 
@@ -135,20 +135,20 @@ class WorkflowManager:
                         self.csv_data = current_csv_data
                         self.csv_file = current_csv_file
                         last_client_name = name
-                        print(f"[✓] Обновлённый файл получен от {name}")
+                        print(f"[✓] Updated file received from {name}")
                     else:
-                        print(f"[!] {name} не обновил данные (NO_UPDATE)")
+                        print(f"[!] {name} did not update data (NO_UPDATE)")
                 
                 conn.settimeout(None)
                 
             except socket.timeout:
-                print(f"[!] Таймаут при работе с клиентом {name}")
+                print(f"[!] Timeout while working with client {name}")
                 try:
                     conn.settimeout(None)
                 except:
                     pass
             except Exception as e:
-                print(f"[!] Ошибка при работе с клиентом {name}: {e}")
+                print(f"[!] Error while working with client {name}: {e}")
                 import traceback
                 traceback.print_exc()
                 try:
@@ -164,38 +164,38 @@ class WorkflowManager:
         """Проверка результатов последовательной обработки"""
         try:
             df = pd.read_csv(io.StringIO(csv_data))
-            print(f"\n[✓✓✓] Последовательная обработка завершена!")
-            print(f"[INFO] Обработано строк: {len(df)}, Колонок: {len(df.columns)}")
-            print(f"[INFO] Последний обработчик: {last_client_name}")
+            print(f"\n[✓✓✓] Sequential processing completed!")
+            print(f"[INFO] Rows processed: {len(df)}, Columns: {len(df.columns)}")
+            print(f"[INFO] Last processor: {last_client_name}")
             
             if 'model_target' in df.columns:
                 model1_count = len(df[df['model_target'] == 'model1'])
                 model2_count = len(df[df['model_target'] == 'model2'])
-                print(f"[INFO] Данные разделены: Model1={model1_count}, Model2={model2_count}")
-                print(f"[✓] Данные готовы для параллельных клиентов!\n")
+                print(f"[INFO] Data split: Model1={model1_count}, Model2={model2_count}")
+                print(f"[✓] Data ready for parallel clients!\n")
             else:
                 if only_level != 8:  # Не показываем предупреждение для Prediction
-                    print(f"[!] ВНИМАНИЕ: Колонка 'model_target' не найдена!")
+                    print(f"[!] WARNING: Column 'model_target' not found!")
         
         except Exception as e:
-            print(f"[!] Ошибка проверки данных: {e}")
+            print(f"[!] Error verifying data: {e}")
     
     def _run_parallel(self, sorted_clients):
         """Параллельная обработка клиентами"""
         global current_csv_data, current_csv_file
         
-        print("[РЕЖИМ] Параллельно")
+        print("[MODE] Parallel")
         
         if current_csv_data is None:
-            print("[!] ОШИБКА: CSV данные не загружены!")
+            print("[!] ERROR: CSV data not loaded!")
             return
         
         threads = []
         for addr, (conn, name, level, mode) in sorted_clients:
-            if mode != "Параллельно":
+            if mode != "Parallel":
                 continue
             if addr not in self.clients:
-                print(f"[!] Клиент {name} отключён, пропускаем")
+                print(f"[!] Client {name} disconnected, skipping")
                 continue
             
             t = threading.Thread(
@@ -214,7 +214,7 @@ class WorkflowManager:
         global current_csv_file
         
         try:
-            print(f"\n[→] Отправка файла клиенту {name} (Lvl {level})")
+            print(f"\n[→] Sending file to client {name} (Lvl {level})")
             
             conn.settimeout(180)
             
@@ -240,18 +240,18 @@ class WorkflowManager:
                 with open(save_path, 'wb') as f:
                     f.write(data)
                 
-                print(f"[✓] Данные от {name} сохранены: {save_path}")
+                print(f"[✓] Data from {name} saved: {save_path}")
             
             conn.settimeout(None)
             
         except socket.timeout:
-            print(f"[!] Таймаут при работе с {name}")
+            print(f"[!] Timeout while working with {name}")
             try:
                 conn.settimeout(None)
             except:
                 pass
         except Exception as e:
-            print(f"[!] Ошибка при работе с {name}: {e}")
+            print(f"[!] Error while working with {name}: {e}")
             import traceback
             traceback.print_exc()
             try:
@@ -264,7 +264,7 @@ class WorkflowManager:
         global current_csv_data, current_csv_file
         
         if not current_csv_data:
-            print("[!] Нет данных для сохранения")
+            print("[!] No data to save")
             return
         
         try:
@@ -275,11 +275,11 @@ class WorkflowManager:
             
             print("\n" + "🎉" * 35)
             print("=" * 70)
-            print("                 ВСЯ ОБРАБОТКА ЗАВЕРШЕНА!")
+            print("                 ALL PROCESSING COMPLETED!")
             print("=" * 70)
-            print(f"\n📂 Финальный файл: {output_path}")
-            print(f"📊 Всего записей: {len(df):,}")
-            print(f"📋 Колонок: {len(df.columns)}")
+            print(f"\n📂 Final file: {output_path}")
+            print(f"📊 Total records: {len(df):,}")
+            print(f"📋 Columns: {len(df.columns)}")
             print("=" * 70 + "\n")
             
             # Вызываем callback для отображения результатов
@@ -291,7 +291,7 @@ class WorkflowManager:
                     self.results_callback()
         
         except Exception as e:
-            print(f"[!] Ошибка сохранения финального файла: {e}")
+            print(f"[!] Error saving final file: {e}")
             import traceback
             traceback.print_exc()
 

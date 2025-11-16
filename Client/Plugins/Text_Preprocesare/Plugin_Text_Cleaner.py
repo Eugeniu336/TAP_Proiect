@@ -10,7 +10,7 @@ import Client_Template as base
 
 base.CLIENT_NAME = "Text_Cleaner"
 base.CLIENT_LEVEL = "1"
-base.CLIENT_MODE = "Последовательно"
+base.CLIENT_MODE = "Sequential"
 
 def do_work():
     import pandas as pd
@@ -19,7 +19,7 @@ def do_work():
     csv_data = base.csv_data
     
     if not csv_data:
-        return "Ошибка: CSV данные не получены", None
+        return "Error: CSV data not received", None
     
     df = pd.read_csv(io.StringIO(csv_data))
     
@@ -27,7 +27,7 @@ def do_work():
     text_column = 'name' if 'name' in df.columns else None
     
     if text_column is None:
-        return "Ошибка: Колонка 'name' не найдена", None
+        return "Error: Column 'name' not found", None
     
     def clean_text(text):
         cleaned = str(text).lower()
@@ -38,7 +38,7 @@ def do_work():
     df['cleaned_text'] = df[text_column].apply(clean_text)
     
     result_csv = df.to_csv(index=False)
-    result_msg = f"Text_Cleaner: Обработано {len(df)} строк"
+    result_msg = f"Text_Cleaner: Processed {len(df)} rows"
     
     return result_msg, result_csv
 

@@ -16,7 +16,7 @@ PORT = 9090
 
 CLIENT_NAME = "NameNameName"
 CLIENT_LEVEL = "1"
-CLIENT_MODE = "Параллельно"
+CLIENT_MODE = "Parallel"
 
 client_socket = None
 connected = False
@@ -48,7 +48,7 @@ def recv_exact(sock, n):
     while len(buf) < n:
         chunk = sock.recv(n - len(buf))
         if not chunk:
-            raise ConnectionError("Соединение прервано")
+            raise ConnectionError("Connection interrupted")
         buf.extend(chunk)
     return bytes(buf)
 
@@ -79,7 +79,7 @@ def send_message(sock, header, data):
 
 # ======================= Основная функция работы =======================
 def do_work():
-    work = "Результат работы клиента"
+    work = "Client work result"
 
     """
     Заглушка для реальной задачи.
@@ -129,7 +129,7 @@ def listen_server():
                             # Загружаем CSV в память
                             csv_data = data.decode('utf-8')
                             csv_file_path = save_path
-                            print(f"[CSV] Получен файл {filename} ({len(data)} байт) -> {save_path}")
+                            print(f"[CSV] Received file {filename} ({len(data)} bytes) -> {save_path}")
                         continue
                 except (struct.error, UnicodeDecodeError):
                     pass
@@ -151,17 +151,17 @@ def listen_server():
                 break
 
             if msg == "DISCONNECT":
-                signals.show_info.emit("Сервер", "Вы были отключены сервером.")
+                signals.show_info.emit("Server", "You were disconnected by the server.")
                 disconnect()
                 break
 
             elif msg.startswith("ERROR:"):
-                signals.show_error.emit("Ошибка", msg.replace("ERROR:", "").strip())
+                signals.show_error.emit("Error", msg.replace("ERROR:", "").strip())
                 disconnect()
                 break
 
             elif msg == "WORK":
-                print("[WORK] Запрос на выполнение работы")
+                print("[WORK] Work request received")
                 result, new_csv = do_work()
 
                 if processed_count == 0:
@@ -188,9 +188,9 @@ def listen_server():
                         "size": len(processed_data)
                     }
                     send_message(client_socket, header, processed_data)
-                    print(f"[CSV] Отправлен обработанный файл ({len(processed_data)} байт)")
+                    print(f"[CSV] Sent processed file ({len(processed_data)} bytes)")
                 else:
-                    print("[!] Нет обновлений для отправки")
+                    print("[!] No updates to send")
                     no_update_data = b"NO_UPDATE"
                     header = {
                         "action": "return_file",
@@ -203,10 +203,10 @@ def listen_server():
             continue
         except (OSError, ConnectionError) as e:
             # Сокет закрыт или ошибка соединения
-            print(f"[!] Соединение прервано: {e}")
+            print(f"[!] Connection interrupted: {e}")
             break
         except Exception as e:
-            print(f"[!] Ошибка при получении данных: {e}")
+            print(f"[!] Error receiving data: {e}")
             import traceback
             traceback.print_exc()
             break
@@ -229,7 +229,7 @@ def connect():
         try:
             msg = client_socket.recv(1024).decode('utf-8')
             if msg.startswith("ERROR:"):
-                signals.show_error.emit("Ошибка", msg.replace("ERROR:", "").strip())
+                signals.show_error.emit("Error", msg.replace("ERROR:", "").strip())
                 client_socket.close()
                 return
         except socket.timeout:
@@ -238,10 +238,10 @@ def connect():
 
         connected = True
         threading.Thread(target=listen_server, daemon=True).start()
-        signals.status_changed.emit(f"Подключен к {SERVER_IP}:{PORT}", "green")
-        signals.show_info.emit("Успех", f"Подключено к серверу {SERVER_IP}:{PORT}")
+        signals.status_changed.emit(f"Connected to {SERVER_IP}:{PORT}", "green")
+        signals.show_info.emit("Success", f"Connected to server {SERVER_IP}:{PORT}")
     except Exception as e:
-        signals.show_error.emit("Ошибка", f"Не удалось подключиться к серверу {SERVER_IP}:{PORT}.\n{e}")
+        signals.show_error.emit("Error", f"Failed to connect to server {SERVER_IP}:{PORT}.\n{e}")
 
 
 def disconnect():
@@ -266,27 +266,27 @@ def disconnect():
     except:
         pass
 
-    signals.status_changed.emit("Отключен", "red")
+    signals.status_changed.emit("Disconnected", "red")
 
 
 # ======================= Диалог настроек =======================
 class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Настройки сервера")
+        self.setWindowTitle("Server Settings")
         self.setFixedSize(300, 160)
 
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("IP сервера:"))
+        layout.addWidget(QLabel("Server IP:"))
         self.ip_entry = QLineEdit(SERVER_IP)
         layout.addWidget(self.ip_entry)
 
-        layout.addWidget(QLabel("Порт:"))
+        layout.addWidget(QLabel("Port:"))
         self.port_entry = QLineEdit(str(PORT))
         layout.addWidget(self.port_entry)
 
-        save_btn = QPushButton("Сохранить")
+        save_btn = QPushButton("Save")
         save_btn.clicked.connect(self.save_settings)
         layout.addWidget(save_btn)
 
@@ -301,10 +301,10 @@ class SettingsDialog(QDialog):
                 raise ValueError
             SERVER_IP = new_ip
             PORT = new_port
-            QMessageBox.information(self, "Сохранено", f"Новый сервер: {SERVER_IP}:{PORT}")
+            QMessageBox.information(self, "Saved", f"New server: {SERVER_IP}:{PORT}")
             self.accept()
         except:
-            QMessageBox.critical(self, "Ошибка", "Некорректный IP или порт.")
+            QMessageBox.critical(self, "Error", "Invalid IP or port.")
 
 
 # ======================= Главное окно =======================
@@ -346,7 +346,7 @@ class CustomWindow(QWidget):
         self.text1.move(70, 55)
         self.text1.setStyleSheet("color: white; font-size: 18px;")
 
-        self.text2 = QTextEdit("Отключен", self)
+        self.text2 = QTextEdit("Disconnected", self)
         self.text2.setFixedSize(170, 80)
         self.text2.move(65, 110)
         self.text2.setReadOnly(True)

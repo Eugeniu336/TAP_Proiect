@@ -9,7 +9,7 @@ import Client_Template as base
 
 base.CLIENT_NAME = "Lemmatizer"
 base.CLIENT_LEVEL = "3"
-base.CLIENT_MODE = "Последовательно"
+base.CLIENT_MODE = "Sequential"
 
 LEMMA_DICT = {
     "products": "product", "services": "service", "phones": "phone",
@@ -27,13 +27,13 @@ def do_work():
     csv_data = base.csv_data
     
     if not csv_data:
-        return "Ошибка: CSV данные не получены", None
+        return "Error: CSV data not received", None
     
     try:
         df = pd.read_csv(io.StringIO(csv_data))
         
         if 'tokens' not in df.columns:
-            return f"Ошибка: Колонка 'tokens' не найдена. Доступны: {list(df.columns)}", None
+            return f"Error: Column 'tokens' not found. Available: {list(df.columns)}", None
         
         # Преобразуем строку обратно в список
         df['tokens'] = df['tokens'].apply(
@@ -64,12 +64,12 @@ def do_work():
         df_final = pd.concat([df1, df2], ignore_index=True)
         
         result_csv = df_final.to_csv(index=False)
-        result_msg = f"Lemmatizer: Лемматизировано {len(df)} строк. Разделено: Model1={len(df1)}, Model2={len(df2)}"
+        result_msg = f"Lemmatizer: Lemmatized {len(df)} rows. Split: Model1={len(df1)}, Model2={len(df2)}"
         
         return result_msg, result_csv
         
     except Exception as e:
-        return f"Lemmatizer: Ошибка - {str(e)}", None
+        return f"Lemmatizer: Error - {str(e)}", None
 
 base.do_work = do_work
 
