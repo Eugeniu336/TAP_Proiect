@@ -1,0 +1,46 @@
+{
+  "accuracy": 0.99,
+  "cv_mean": 0.9400000000000001,
+  "cv_std": 0.07999999999999999,
+  "classification_report": {
+    "fruit": {
+      "precision": 0.9791666666666666,
+      "recall": 1.0,
+      "f1-score": 0.9894736842105263,
+      "support": 47.0
+    },
+    "vegetable": {
+      "precision": 1.0,
+      "recall": 0.9811320754716981,
+      "f1-score": 0.9904761904761905,
+      "support": 53.0
+    },
+    "accuracy": 0.99,
+    "macro avg": {
+      "precision": 0.9895833333333333,
+      "recall": 0.9905660377358491,
+      "f1-score": 0.9899749373433584,
+      "support": 100.0
+    },
+    "weighted avg": {
+      "precision": 0.9902083333333332,
+      "recall": 0.99,
+      "f1-score": 0.9900050125313282,
+      "support": 100.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      47,
+      0
+    ],
+    [
+      1,
+      52
+    ]
+  ],
+  "classes": [
+    "fruit",
+    "vegetable"
+  ]
+}
